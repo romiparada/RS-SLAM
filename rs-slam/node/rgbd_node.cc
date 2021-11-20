@@ -40,16 +40,20 @@
 #include <opencv2/core/core.hpp>
 
 #include"../include/System.h"
+//#include<mutex>
 
 using namespace std;
 
 class ImageGrabber
 {
 public:
-    ImageGrabber(ORB_SLAM2::System* pSLAM):mpSLAM(pSLAM){}
+    ImageGrabber(ORB_SLAM2::System* pSLAM):mpSLAM(pSLAM), mbNewSegImgFlag(false){}
 
     void GrabRGBD(const sensor_msgs::ImageConstPtr& msgRGB,const sensor_msgs::ImageConstPtr& msgD);
     void GrabSemtic(const sensor_msgs::ImageConstPtr& msgSemL,const sensor_msgs::ImageConstPtr& msgSemC, const sensor_msgs::ImageConstPtr& msgSemConf);
+    bool isNewSegmentImgArrived();
+    bool mbNewSegImgFlag;
+//    std::mutex mMutexNewImgSegment;
 
     ORB_SLAM2::System* mpSLAM;
 };
@@ -151,7 +155,9 @@ void ImageGrabber::GrabSemtic(const sensor_msgs::ImageConstPtr& msgSemL, const s
     }
 
     cout << "ROS-ImageGrabber->执行--TrackSemtic--" << endl;
+//    std::unique_lock <std::mutex> lock(mMutexNewImgSegment);
     mpSLAM->TrackSemtic(cv_ptrSemL->image, cv_ptrSemC->image, cv_ptrSemConf->image);
+    mbNewSegImgFlag=true;
 }
 //这是彩色图和深度图的回调
 void ImageGrabber::GrabRGBD(const sensor_msgs::ImageConstPtr& msgRGB,const sensor_msgs::ImageConstPtr& msgD)
@@ -179,6 +185,10 @@ void ImageGrabber::GrabRGBD(const sensor_msgs::ImageConstPtr& msgRGB,const senso
         ROS_ERROR("cv_bridge exception: %s", e.what());
         return;
     }
+
+    if(mbNewSegImgFlag)
+    {
+
     cout << "ROS-ImageGrabber->执行--TrackRGBD--" << endl;
     cv::Mat Tcw = mpSLAM->TrackRGBD(cv_ptrRGB->image,cv_ptrD->image,cv_ptrRGB->header.stamp.toSec());
 
@@ -202,6 +212,22 @@ void ImageGrabber::GrabRGBD(const sensor_msgs::ImageConstPtr& msgRGB,const senso
     transformStamped.transform.rotation.w = q[3];
 
     br.sendTransform(transformStamped);
+    }
 }
+
+bool ImageGrabber::isNewSegmentImgArrived()
+{
+//    std::unique_lock <std::mutex> lock(mMutexNewImgSegment);
+    if(mbNewSegImgFlag)
+    {
+        mbNewSegImgFlag=false;
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
 
 
