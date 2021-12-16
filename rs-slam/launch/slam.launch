@@ -1,0 +1,11 @@
+<launch>
+	<!-- arguments -->
+        <arg name="settings" default="$(find rs_slam)/config/running.yaml"/>
+        <arg name="vocabulary" default="$(find rs_slam)/Vocabulary/ORBvoc.txt"/>
+        <arg name="results_path" />
+
+        <param name="results_path" type="string" value="$(arg results_path)" />
+
+	<!-- Start rs_slam System -->
+	<node pkg="rs_slam" type="rgbd_node" name="rgbd_node" output="screen" cwd="node" args="$(arg vocabulary) $(arg settings)"/> 
+</launch>

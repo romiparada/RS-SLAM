@@ -1,0 +1,14 @@
+<launch>
+	<arg name="sequence" />
+	<arg name="results_path" />
+        <arg name="settings" default="$(find semantic_slam)/params/semantic_cloud.yaml"/>
+
+	<include file="$(find rs_slam)/launch/slam.launch">
+		<arg name="results_path" value="$(arg results_path)" />
+	</include>
+	<include file="$(find semantic_slam)/launch/semantic.launch">
+		<arg name="settings" value="$(arg settings)" />
+	</include>
+
+	<node pkg="rosbag" type="play" name="player" output="screen" args="--delay=20 --rate=0.005 $(arg sequence)" />
+</launch>

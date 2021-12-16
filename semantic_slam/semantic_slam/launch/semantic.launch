@@ -1,0 +1,6 @@
+<launch>
+	<arg name="settings" default="$(find semantic_slam)/params/semantic_cloud.yaml"/> 
+
+	<rosparam file="$(arg settings)" command="load"/>
+	<node pkg="semantic_cloud" type="semantic_cloud.py" name="semantic_cloud" output="screen"/>
+</launch>
