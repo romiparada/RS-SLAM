@@ -40,20 +40,18 @@
 #include <opencv2/core/core.hpp>
 
 #include"../include/System.h"
-//#include<mutex>
 
 using namespace std;
 
 class ImageGrabber
 {
 public:
-    ImageGrabber(ORB_SLAM2::System* pSLAM):mpSLAM(pSLAM), mbNewSegImgFlag(false){}
+    ImageGrabber(ORB_SLAM2::System* pSLAM):mpSLAM(pSLAM){}
 
     void GrabRGBD(const sensor_msgs::ImageConstPtr& msgRGB,const sensor_msgs::ImageConstPtr& msgD);
     void GrabSemtic(const sensor_msgs::ImageConstPtr& msgSemL,const sensor_msgs::ImageConstPtr& msgSemC, const sensor_msgs::ImageConstPtr& msgSemConf);
     bool isNewSegmentImgArrived();
     bool mbNewSegImgFlag;
-//    std::mutex mMutexNewImgSegment;
 
     ORB_SLAM2::System* mpSLAM;
 };
@@ -71,7 +69,8 @@ int main(int argc, char **argv)
     }
 
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
-    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::RGBD,true);
+    // ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::RGBD,true);
+    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::RGBD,false);
 
     ImageGrabber igb(&SLAM);
 
@@ -93,9 +92,9 @@ int main(int argc, char **argv)
 ///订阅彩色图和深度图并同步
 ///kinect2 话题：/kinect2/qhd/image_color  /kinect2/qhd/image_depth_rect
 ///TUM 话题：/camera/rgb/image_color  /camera/depth/image
-    message_filters::Subscriber<sensor_msgs::Image> rgb_sub(nh, "/camera/rgb/image_color", 1);
+    message_filters::Subscriber<sensor_msgs::Image> rgb_sub(nh, "/semantic_camera/rgb/image_color", 1);
     cout << "ROS-ImageGrabber->订阅/camera/rgb/image_color话题--" << endl;
-    message_filters::Subscriber<sensor_msgs::Image> depth_sub(nh, "/camera/depth/image", 1);
+    message_filters::Subscriber<sensor_msgs::Image> depth_sub(nh, "/semantic_camera/depth/image", 1);
     cout << "ROS-ImageGrabber->订阅/camera/depth/image话题--" << endl;
     typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image> sync_pol1;
     message_filters::Synchronizer<sync_pol1> sync1(sync_pol1(10), rgb_sub,depth_sub);
@@ -109,8 +108,10 @@ int main(int argc, char **argv)
     SLAM.Shutdown();
 
     // Save camera trajectory
-    SLAM.SaveTrajectoryTUM("CameraTrajectory.txt");
-    SLAM.SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");
+    string results_path="";
+    nh.getParam("results_path", results_path);
+    SLAM.SaveTrajectoryTUM(results_path+"CameraTrajectory.txt");
+    SLAM.SaveKeyFrameTrajectoryTUM(results_path+"KeyFrameTrajectory.txt");
 
     ros::shutdown();
 
@@ -155,7 +156,6 @@ void ImageGrabber::GrabSemtic(const sensor_msgs::ImageConstPtr& msgSemL, const s
     }
 
     cout << "ROS-ImageGrabber->执行--TrackSemtic--" << endl;
-//    std::unique_lock <std::mutex> lock(mMutexNewImgSegment);
     mpSLAM->TrackSemtic(cv_ptrSemL->image, cv_ptrSemC->image, cv_ptrSemConf->image);
     mbNewSegImgFlag=true;
 }
@@ -186,8 +186,6 @@ void ImageGrabber::GrabRGBD(const sensor_msgs::ImageConstPtr& msgRGB,const senso
         return;
     }
 
-    if(mbNewSegImgFlag)
-    {
 
     cout << "ROS-ImageGrabber->执行--TrackRGBD--" << endl;
     cv::Mat Tcw = mpSLAM->TrackRGBD(cv_ptrRGB->image,cv_ptrD->image,cv_ptrRGB->header.stamp.toSec());
@@ -212,22 +210,4 @@ void ImageGrabber::GrabRGBD(const sensor_msgs::ImageConstPtr& msgRGB,const senso
     transformStamped.transform.rotation.w = q[3];
 
     br.sendTransform(transformStamped);
-    }
 }
-
-bool ImageGrabber::isNewSegmentImgArrived()
-{
-//    std::unique_lock <std::mutex> lock(mMutexNewImgSegment);
-    if(mbNewSegImgFlag)
-    {
-        mbNewSegImgFlag=false;
-        return true;
-    }
-    else
-    {
-        return false;
-    }
-}
-
-
-

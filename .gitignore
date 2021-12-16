@@ -1,1 +1,3 @@
 semantic_slam/models/pspnet_sunrgbd_best_model180625_5k.pth
+rs-slam/Vocabulary/ORBvoc.txt
+rs-slam/.catkin_tools/
