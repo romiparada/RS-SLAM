@@ -102,7 +102,7 @@ class SemanticCloud:
         model_path = rospy.get_param('/semantic_pcl/model_path')
         self.n_classes = 38 # Semantic class number
         self.model = get_model(model_name, self.n_classes, version = 'sunrgbd_res50')
-        state = torch.load(model_path,map_location='cuda:0')
+        state = torch.load(model_path,map_location="cuda:0" if torch.cuda.is_available() else "cpu")
         self.model.load_state_dict(state)
         self.cnn_input_size = (321, 321)
         self.mean = np.array([104.00699, 116.66877, 122.67892]) # Mean value of dataset
@@ -116,10 +116,16 @@ class SemanticCloud:
             self.semlabel_pub = rospy.Publisher("/semantic_image/semantic_label", Image, queue_size=1)
             self.semcolor_pub = rospy.Publisher("/semantic_image/semantic_color", Image, queue_size=1)
             self.semconfi_pub = rospy.Publisher("/semantic_image/semantic_confidence", Image, queue_size=1)
-            self.image_sub = rospy.Subscriber(rospy.get_param('/semantic_pcl/color_image_topic'), Image, self.color_callback, queue_size = 1, buff_size = 30*480*640)
+            self.semrgb_pub = rospy.Publisher("/semantic_camera/rgb/image_color", Image, queue_size=1)
+            self.semdepth_pub = rospy.Publisher("/semantic_camera/depth/image", Image, queue_size=1)
+	    #self.image_sub = rospy.Subscriber(rospy.get_param('/semantic_pcl/color_image_topic'), Image, self.color_callback, queue_size = 1, buff_size = 30*480*640)
+            image_sub = message_filters.Subscriber(rospy.get_param('/semantic_pcl/color_image_topic'), Image, queue_size = 1, buff_size = 30*480*640)
+            depth_sub = message_filters.Subscriber(rospy.get_param('/semantic_pcl/depth_image_topic'), Image, queue_size = 1, buff_size = 30*480*640)
+	    ts = message_filters.ApproximateTimeSynchronizer([image_sub, depth_sub], 10, 0.02)
+  	    ts.registerCallback(self.color_callback)
         print('Ready.')
 
-    def color_callback(self, color_img_ros):
+    def color_callback(self, color_img_ros, color_depth_ros):
         """
         Callback function for color image, de semantic segmantation and show the decoded image. For test purpose
         \param color_img_ros (sensor_msgs.Image) input ros color image message
@@ -149,11 +155,13 @@ class SemanticCloud:
         self.semlabel_pub.publish(semantic_label)
         self.semcolor_pub.publish(semantic_image)
         self.semconfi_pub.publish(semantic_confidence)
+	self.semrgb_pub.publish(color_img_ros)
+	self.semdepth_pub.publish(color_depth_ros)
         end_time=datetime.datetime.now()
         print(str((end_time - start_time).microseconds / 1000))
-        cv2.imshow('Semantic segmantation', decoded)
-        cv2.imshow('Color image', color_img)
-        cv2.waitKey(3)
+        #cv2.imshow('Semantic segmantation', decoded)
+        #cv2.imshow('Color image', color_img)
+        #cv2.waitKey(3)
 
     def predict(self, img):
         """

@@ -12,4 +12,4 @@ semantic_pcl:
   color_image_topic: "/camera/rgb/image_color"
   depth_image_topic: "/camera/depth/image"
   dataset: "sunrgbd" # sunrgbd
-  model_path: "/home/ran/catkin_ws/src/semantic_slam/models/pspnet_sunrgbd_best_model180625_5k.pth"
+  model_path: "/home/nvidia/catkin_ws/src/RS-SLAM/semantic_slam/models/pspnet_sunrgbd_best_model180625_5k.pth"
