@@ -5,6 +5,8 @@ IF(NOT CMAKE_BUILD_TYPE)
    SET(CMAKE_BUILD_TYPE Release)
 ENDIF()
 
+find_package( octomap REQUIRED )
+
 set(PACKAGE_DEPENDENCIES
         roscpp
         sensor_msgs
